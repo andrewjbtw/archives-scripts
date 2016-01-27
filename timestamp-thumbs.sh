@@ -1,30 +1,48 @@
 #!/bin/bash
 
+# Generates thumbnails from a video file by extracting still frames at a regular interval. Each thumbnail is stamped with the time elapsed since the beginning of the file. Also generates a playable video file from the thumbnails. Thumbnails and video are placed in their own output directory.
+#
+# Usage: 
+#
+# This script takes three arguments:
+#
+# timestamp-thumbs.sh path/to/file path/to/output/directory interval
+
 input_file=$1
 output_directory=$2
-interval=$3
-frames=$(echo "$(ffprobe -i "$input_file" -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1)/$interval" | bc)
-offset=$(echo "scale=1;($interval / 2)" | bc)
+interval=$3 # in seconds. A value of '30' means one frame every 30 seconds.
 
-mkdir -pv "$output_directory"/thumbnails
+# Calculate offset for timestamp of first extracted frame. ffmpeg takes the first frame at half of the interval you set.
+# Example: if interval=20 seconds, the first frame will be from 10 seconds into the file
+offset=$(echo "scale=3;($interval / 2)" | bc) # Use decimal places to account for odd-numbered intervals
 
-#make the thumbnails
-#ffmpeg -i "$input_file" -filter_complex "fps=1/$interval,scale=960:-1" -vframes $frames "$output_directory"/thumbnails/thumb%04d.jpg
+# Calculate number of frames to extract. If the number of frames is not set, ffmpeg will extract the final frame of the video even if it does not match the interval you've set.
+#TODO: check math
+duration=$(ffprobe -i "$input_file" -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1)
+frames=$(echo "scale=0;($duration + $offset)/$interval" | bc) # Needs to be a whole number
 
-#ffmpeg -i "$input_file" -filter_complex "fps=1/5,scale=960:-1,drawtext=fontfile=/usr/share/fonts/truetype/freefont/FreeSerif.ttf: text='frame %{n}\\: %{pict_type}\\: pts=%{pts \\: hms \\: $offset}': x=100: y=50: fontsize=24: fontcolor=yellow@0.8: box=1: boxcolor=blue@0.9" "$output_directory"/thumbnails/thumb%04d.jpg
+# If no thumbnails will be created, alert the user and quit.
+if [ "$frames" == 0 ]
+then
+    echo "No thumbnails will be created. Please check if your interval is too long for this file."
+    exit
+fi
 
-ffmpeg -i "$input_file" -filter_complex "fps=1/$interval,scale=960:-1,drawtext=fontfile=/usr/share/fonts/truetype/freefont/FreeSerif.ttf: text='%{pts \\: hms \\: $offset}': x=100: y=h-100: fontsize=24: fontcolor=yellow@0.8: box=1: boxcolor=blue@0.9" -vframes $frames "$output_directory"/thumbnails/thumb%04dtimecoded.jpg
+# Create output directory
+if [ -d "$output_directory" ]
+then
+    echo "A folder with the name $output_directory already exists. Please choose a new location."
+    exit
+else
+    mkdir -pv "$output_directory"/thumbnails
+fi
 
-#once you have images
-#for i in "$output_directory"/thumbnails/thumb[0-9][0-9][0-9][0-9].jpg; do
-#    multiplier=$(echo $i | grep -oE [[:digit:]]{4}) 
-#    timecode=$(date -d@$(echo "scale=1;($multiplier - 1) * $interval + $offset" | bc) -u +%H:%M:%S) 
-#    convert $i -fill yellow -gravity South -pointsize 40 -annotate +0+5 "$timecode" "${i/.jpg/timecoded}.jpg"
-#done
+# Create the thumbnails
+# Exact path to font file will depend on your system configuration.
+# To consider: make the thumbnail file format and size configurable from the command line
+ffmpeg -i "$input_file" -filter_complex "fps=1/$interval,scale=960:-1,drawtext=fontfile=/usr/share/fonts/truetype/freefont/FreeSans.ttf: text='%{pts \\: hms \\: $offset}': x=100: y=h-100: fontsize=24: fontcolor=yellow@0.8: box=1: boxcolor=blue@0.9" -vframes $frames "$output_directory"/thumbnails/thumb%04dtimestamped.jpg
 
-#make the image sequence video  
-ffmpeg -framerate 3/1 -f image2 -i "$output_directory"/thumbnails/thumb%04dtimecoded.jpg -an "$output_directory"/"$(basename "$input_file")-timecodedindex.mkv"
+# Make a video from the image sequence  
+ffmpeg -framerate 3/1 -f image2 -i "$output_directory"/thumbnails/thumb%04dtimestamped.jpg -an "$output_directory"/"$(basename "${input_file%.*}")-thumbs.mkv"
 
-#clean up thumbnails
-#rm -rf "$output_directory"/thumbnails/*
-#rmdir -v "$output_directory"/thumbnails
+echo "Processing is complete. The new files are located at $output_directory"
