@@ -19,8 +19,6 @@ then
     exit
 fi
 
-
-
 # Calculate offset for timestamp of first extracted frame. ffmpeg takes the first frame at half of the interval you set.
 # Example: if interval=20 seconds, the first frame will be from 10 seconds into the file
 offset=$(echo "scale=3;($interval / 2)" | bc) # Use decimal places to account for odd-numbered intervals
@@ -49,7 +47,7 @@ fi
 # Create the thumbnails
 # Exact path to font file will depend on your system configuration.
 # To consider: make the thumbnail file format and size configurable from the command line
-ffmpeg -i "$input_file" -filter_complex "fps=1/$interval,scale=960:-1,drawtext=fontfile=/usr/share/fonts/truetype/freefont/FreeSans.ttf: text='%{pts \\: hms \\: $offset}': x=100: y=h-100: fontsize=24: fontcolor=yellow@0.8: box=1: boxcolor=blue@0.9" -vframes $frames "$output_directory"/thumbnails/thumb%04dtimestamped.jpg
+ffmpeg -i "$input_file" -filter_complex "fps=1/$interval,scale=w='min(960\, iw):h=-1',drawtext=fontfile=/usr/share/fonts/truetype/freefont/FreeSans.ttf: text='%{pts \\: hms \\: $offset}': x=100: y=h-100: fontsize=24: fontcolor=yellow@0.8: box=1: boxcolor=blue@0.9" -vframes $frames "$output_directory"/thumbnails/thumb%04dtimestamped.jpg
 
 # Make a video from the image sequence  
 ffmpeg -framerate 3/1 -f image2 -i "$output_directory"/thumbnails/thumb%04dtimestamped.jpg -an -vf fps=25 "$output_directory"/"$(basename "${input_file%.*}")-thumbs.mkv"
