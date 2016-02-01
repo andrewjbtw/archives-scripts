@@ -31,6 +31,8 @@ frames=$(echo "scale=0;($duration + $offset)/$interval" | bc) # Needs to be a wh
 if [ "$frames" == 0 ]
 then
     echo "No images will be created. Please check if your interval is longer than the file."
+    echo "Selected interval: $interval."
+    echo "Duration of $input_file: $duration."
     exit
 fi
 
@@ -52,7 +54,7 @@ printf "\nProcessing $input_file:\n"
 printf "Extracting frames:\n"
 
 # Calculate font size based on height of video, with a maximum of 24
-height=$(ffprobe -i "$input_file" -v error -show_entries stream=height -of default=nokey=1:noprint_wrappers=1) 
+height=$(ffprobe -i "$input_file" -v error -select_streams v:0 -show_entries stream=height -of default=nokey=1:noprint_wrappers=1) 
 font_size=$(($height/20))
 if [ $font_size -gt 24 ]
 then
