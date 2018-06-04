@@ -6,6 +6,14 @@ source_full_path=$1
 target_full_path=$2
 
 # TODO: output messages to stderr
+
+# script currently takes exactly two arguments: full path to source; full path to target
+
+if [ "$#" -ne 2 ] ; then
+   echo "This script requires two arguments."
+   exit 0
+fi
+
 if [ ! -d "$source_full_path" ]
 then
     echo "The directory \"$source_full_path\" could not be found."
