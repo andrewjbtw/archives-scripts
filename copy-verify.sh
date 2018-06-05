@@ -10,19 +10,19 @@ target_full_path=$2
 # script currently takes exactly two arguments: full path to source; full path to target
 
 if [ "$#" -ne 2 ] ; then
-   echo "This script requires two arguments."
-   exit 0
+   echo "This script requires two arguments." >&2
+   exit
 fi
 
 if [ ! -d "$source_full_path" ]
 then
-    echo "The directory \"$source_full_path\" could not be found."
+    echo "The directory \"$source_full_path\" could not be found." >&2
     exit
 fi
 
 if [ -d "$target_full_path" ]
 then
-    echo "Found existing directory at \"$target_full_path\". The target path must be a new directory."
+    echo "Found existing directory at \"$target_full_path\". The target path must be a new directory." >&2
     exit
 fi
 
