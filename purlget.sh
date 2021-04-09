@@ -4,6 +4,13 @@
 # note: the actual files have a base URL of stacks.stanford.edu
 
 purl=$1
+
+if [ -z "$purl" ]
+then
+	echo "no purl, no download"
+	exit
+fi
+
 druid=$(basename "$purl")
 stacks_base="https://stacks.stanford.edu/file/$druid"
 
